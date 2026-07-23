@@ -12,7 +12,7 @@
     <div id="pantalla-inicio" class="transition-opacity duration-500 opacity-100 flex flex-col items-center gap-6 w-full max-w-md">
         <header class="text-center">
             <h1 class="text-4xl font-bold">Video Poker</h1>
-            <p class="text-slate-400 mt-1">Jacks or Better — consigue la mejor jugada de póker</p>
+            <p class="text-slate-400 mt-1">Duelo de 5 cartas contra la máquina — gana la mejor jugada</p>
         </header>
 
         <section class="w-full bg-slate-800 rounded-lg p-4">
@@ -39,12 +39,16 @@
         <div class="w-full flex flex-col lg:flex-row gap-6 items-center lg:items-start justify-center">
 
             <aside class="w-full lg:w-56 shrink-0 bg-slate-800 rounded-lg p-3 order-2 lg:order-1">
-                <h2 class="text-sm font-semibold mb-1 text-center text-slate-400">Tabla de pagos (x apuesta)</h2>
-                <ul id="tabla-pagos" class="flex flex-col gap-0.5 text-sm"></ul>
+                <h2 class="text-sm font-semibold mb-1 text-center text-slate-400">Ranking de manos (mejor a peor)</h2>
+                <ol id="ranking-manos" class="flex flex-col gap-0.5 text-sm"></ol>
             </aside>
 
-            <section class="mesa order-1 lg:order-2 flex items-center justify-center px-6 py-10 w-full lg:w-auto">
-                <div id="mano" class="flex justify-center gap-2 sm:gap-3 min-h-[7rem]"></div>
+            <section class="mesa order-1 lg:order-2 flex flex-col items-center justify-center gap-3 px-6 py-8 w-full lg:w-auto">
+                <span class="text-xs font-semibold uppercase tracking-widest text-emerald-100/70">Máquina</span>
+                <div id="mano-maquina" class="flex justify-center gap-2 sm:gap-3 min-h-[6rem]"></div>
+                <div class="w-32 border-t border-emerald-200/20"></div>
+                <div id="mano" class="flex justify-center gap-2 sm:gap-3 min-h-[6rem]"></div>
+                <span class="text-xs font-semibold uppercase tracking-widest text-amber-200/80">Tú</span>
             </section>
 
         </div>

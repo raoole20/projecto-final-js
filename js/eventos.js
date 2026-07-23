@@ -1,11 +1,11 @@
 import { elementos } from './ui/dom.js';
 import { crearEstadoPoker, FASE } from './poker/estadoPoker.js';
-import { repartir, resolver } from './poker/juego.js';
+import { repartir, resolver, RESULTADO } from './poker/juego.js';
 import { esApuestaValida } from './poker/fichas.js';
-import { obtenerTablaPagos } from './poker/tablaPagos.js';
+import { ORDEN_MANOS } from './poker/puntuacion.js';
 import { inicializarRankingSemilla, obtenerTopRanking, guardarPuntuacion } from './ranking/ranking.js';
-import { renderizarMano, renderizarDorsos } from './ui/renderMano.js';
-import { renderizarTablaPagos } from './ui/renderTablaPagos.js';
+import { renderizarMano, renderizarDorsos, renderizarManoRevelada } from './ui/renderMano.js';
+import { renderizarRankingManos } from './ui/renderRankingManos.js';
 import { actualizarFichas } from './ui/renderFichas.js';
 import { actualizarRonda } from './ui/renderRonda.js';
 import { mostrarMensaje } from './ui/renderMensaje.js';
@@ -41,17 +41,18 @@ const refrescarFichas = () => {
     mejorFichas = Math.max(mejorFichas, fichas);
 };
 
-const mostrarTablaPagos = (rangoActivo = null) => {
-    renderizarTablaPagos(elementos.listaPagos, obtenerTablaPagos(), rangoActivo);
-};
-
-const dibujarMano = () => {
+const dibujarManoJugador = () => {
     renderizarMano(
         elementos.contenedorMano,
         estado.obtenerMano(),
         estado.obtenerRetenidas(),
         manejarClicCarta
     );
+};
+
+const mostrarDorsos = () => {
+    renderizarDorsos(elementos.contenedorMano);
+    renderizarDorsos(elementos.contenedorManoMaquina);
 };
 
 const refrescarRonda = () => {
@@ -64,8 +65,7 @@ const iniciarSesionJuego = () => {
     partidaGuardada = false;
     refrescarFichas();
     refrescarRonda();
-    mostrarTablaPagos();
-    renderizarDorsos(elementos.contenedorMano);
+    mostrarDorsos();
     mostrarMensaje(elementos.mensaje, 'Haz tu apuesta y pulsa Apostar.', 'info');
     configurarBotonesApostar(elementos);
 };
@@ -73,7 +73,7 @@ const iniciarSesionJuego = () => {
 const manejarClicCarta = (indice) => {
     if (estado.obtenerFase() !== FASE.DESCARTE) return;
     estado.alternarRetencion(indice);
-    dibujarMano();
+    dibujarManoJugador();
 };
 
 const manejarApostar = () => {
@@ -87,31 +87,31 @@ const manejarApostar = () => {
 
     repartir(estado, apuesta);
     refrescarFichas();
-    mostrarTablaPagos();
-    dibujarMano();
+    dibujarManoJugador();
+    renderizarDorsos(elementos.contenedorManoMaquina);
     mostrarMensaje(elementos.mensaje, 'Toca las cartas que quieras conservar. Luego Cambiar o Pasar.', 'info');
     configurarBotonesDescarte(elementos);
 };
 
-const componerTextoResultado = (resultado, apuesta) =>
-    resultado.ganancia > 0
-        ? `¡${resultado.nombre}! Ganas ${resultado.ganancia} fichas.`
-        : `${resultado.nombre}. Perdiste tu apuesta de ${apuesta} fichas.`;
+const componerMensajeShowdown = ({ resultado, ganancia, apuesta, nombreJugador: nj, nombreMaquina }) => {
+    const marcador = `Tú: ${nj} · Máquina: ${nombreMaquina}. `;
+    if (resultado === RESULTADO.GANA) return { texto: `${marcador}¡Ganas ${ganancia} fichas!`, tipo: 'exito' };
+    if (resultado === RESULTADO.EMPATA) return { texto: `${marcador}Empate, recuperas tu apuesta.`, tipo: 'info' };
+    return { texto: `${marcador}Pierdes ${apuesta} fichas.`, tipo: 'error' };
+};
 
 const finalizarMano = () => {
-    const apuesta = estado.obtenerApuesta();
     const resultado = resolver(estado);
     refrescarFichas();
-    dibujarMano();
-    mostrarTablaPagos(resultado.rango);
+    dibujarManoJugador();
+    renderizarManoRevelada(elementos.contenedorManoMaquina, estado.obtenerManoMaquina());
 
-    const textoResultado = componerTextoResultado(resultado, apuesta);
-    const tipo = resultado.ganancia > 0 ? 'exito' : 'error';
+    const { texto, tipo } = componerMensajeShowdown(resultado);
 
     if (estado.obtenerFichas() <= 0) {
         estado.terminarPartida();
         guardarPuntuacionUnaVez();
-        mostrarMensaje(elementos.mensaje, `${textoResultado} Te quedaste sin fichas. Pulsa Nueva partida.`, 'error');
+        mostrarMensaje(elementos.mensaje, `${texto} Te quedaste sin fichas. Pulsa Nueva partida.`, 'error');
         configurarBotonesFinal(elementos);
         return;
     }
@@ -119,14 +119,14 @@ const finalizarMano = () => {
     if (!estado.hayMasRondas()) {
         estado.terminarPartida();
         guardarPuntuacionUnaVez();
-        mostrarMensaje(elementos.mensaje, `${textoResultado} Fin de la partida con ${estado.obtenerFichas()} fichas.`, tipo);
+        mostrarMensaje(elementos.mensaje, `${texto} Fin de la partida con ${estado.obtenerFichas()} fichas.`, tipo);
         configurarBotonesFinal(elementos);
         return;
     }
 
     estado.avanzarRonda();
     refrescarRonda();
-    mostrarMensaje(elementos.mensaje, `${textoResultado} Apuesta para la siguiente ronda.`, tipo);
+    mostrarMensaje(elementos.mensaje, `${texto} Apuesta para la siguiente ronda.`, tipo);
     configurarBotonesApostar(elementos);
 };
 
@@ -165,6 +165,7 @@ const manejarVolverRanking = () => {
 export const inicializarEventos = () => {
     inicializarRankingSemilla();
     actualizarRankingEnPantalla();
+    renderizarRankingManos(elementos.listaRankingManos, ORDEN_MANOS);
 
     elementos.btnContinuar.addEventListener('click', manejarContinuar);
     elementos.btnVolverRanking.addEventListener('click', manejarVolverRanking);

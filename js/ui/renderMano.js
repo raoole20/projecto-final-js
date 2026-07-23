@@ -40,3 +40,14 @@ export const renderizarDorsos = (contenedor) => {
         contenedor.append(imagen);
     }
 };
+
+export const renderizarManoRevelada = (contenedor, mano) => {
+    contenedor.innerHTML = '';
+    for (const carta of mano) {
+        const imagen = document.createElement('img');
+        imagen.src = obtenerRutaImagen(carta);
+        imagen.alt = carta;
+        imagen.className = 'w-16 sm:w-20 rounded-lg';
+        contenedor.append(imagen);
+    }
+};

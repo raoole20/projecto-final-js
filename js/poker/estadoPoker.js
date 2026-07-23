@@ -1,5 +1,6 @@
 import { crearMazo, mezclarMazo, repartirCarta } from '../cartas/mazo.js';
 import { FICHAS_INICIALES } from './fichas.js';
+import { crearManoMaquina } from './manoMaquina.js';
 
 export const FASE = {
     APOSTAR: 'apostar',
@@ -16,6 +17,7 @@ const manoRetenidasVacia = () => new Array(TAMANO_MANO).fill(false);
 export const crearEstadoPoker = () => {
     let mazo = [];
     let mano = [];
+    let manoMaquina = [];
     let retenidas = manoRetenidasVacia();
     let fichas = FICHAS_INICIALES;
     let apuesta = 0;
@@ -24,6 +26,7 @@ export const crearEstadoPoker = () => {
 
     return {
         obtenerMano: () => mano,
+        obtenerManoMaquina: () => manoMaquina,
         obtenerRetenidas: () => retenidas,
         obtenerFichas: () => fichas,
         obtenerApuesta: () => apuesta,
@@ -35,6 +38,7 @@ export const crearEstadoPoker = () => {
         iniciarMano: () => {
             mazo = mezclarMazo(crearMazo());
             mano = Array.from({ length: TAMANO_MANO }, () => repartirCarta(mazo));
+            manoMaquina = crearManoMaquina(mazo);
             retenidas = manoRetenidasVacia();
             fase = FASE.DESCARTE;
         },

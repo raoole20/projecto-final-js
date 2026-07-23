@@ -3,7 +3,7 @@
     border: 12px solid #6b4423;
     border-radius: 140px;
     box-shadow: inset 0 0 45px rgba(0, 0, 0, 0.55), 0 12px 30px rgba(0, 0, 0, 0.45);
-    min-height: 200px;
+    min-height: 340px;
 }
 
 @media (min-width: 1024px) {
