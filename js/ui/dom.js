@@ -1,4 +1,10 @@
 export const elementos = {
+    pantallaInicio: document.querySelector('#pantalla-inicio'),
+    pantallaJuego: document.querySelector('#pantalla-juego'),
+    listaRanking: document.querySelector('#lista-ranking'),
+    inputNombre: document.querySelector('#input-nombre'),
+    btnContinuar: document.querySelector('#btn-continuar'),
+    btnVolverRanking: document.querySelector('#btn-volver-ranking'),
     cartaActual: document.querySelector('#carta-actual'),
     racha: document.querySelector('#racha'),
     mejorRacha: document.querySelector('#mejor-racha'),
