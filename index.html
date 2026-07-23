@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mayor o Menor</title>
+    <title>Video Poker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/estilo.css">
 </head>
@@ -11,8 +11,8 @@
 
     <div id="pantalla-inicio" class="transition-opacity duration-500 opacity-100 flex flex-col items-center gap-6 w-full max-w-md">
         <header class="text-center">
-            <h1 class="text-4xl font-bold">Mayor o Menor</h1>
-            <p class="text-slate-400 mt-1">Adivina si la siguiente carta será mayor o menor</p>
+            <h1 class="text-4xl font-bold">Video Poker</h1>
+            <p class="text-slate-400 mt-1">Jacks or Better — consigue la mejor jugada de póker</p>
         </header>
 
         <section class="w-full bg-slate-800 rounded-lg p-4">
@@ -29,36 +29,50 @@
         <button id="btn-continuar" class="px-8 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold transition">Continuar</button>
     </div>
 
-    <main id="pantalla-juego" class="hidden opacity-0 transition-opacity duration-500 flex flex-col items-center gap-6 w-full max-w-md">
+    <main id="pantalla-juego" class="hidden opacity-0 transition-opacity duration-500 flex flex-col items-center gap-6 w-full max-w-3xl">
 
-        <header class="text-center">
-            <h1 class="text-4xl font-bold">Mayor o Menor</h1>
+        <header class="w-full flex items-center justify-between">
+            <h1 class="text-3xl font-bold">Video Poker</h1>
+            <p id="ronda" class="text-sm font-semibold text-slate-200 bg-slate-800 px-3 py-1 rounded-full">Ronda 1 / 5</p>
         </header>
 
-        <section class="flex gap-8 text-center">
-            <div>
-                <p class="text-sm text-slate-400">Racha</p>
-                <p id="racha" class="text-3xl font-bold">0</p>
+        <div class="w-full flex flex-col lg:flex-row gap-6 items-center lg:items-start justify-center">
+
+            <aside class="w-full lg:w-56 shrink-0 bg-slate-800 rounded-lg p-3 order-2 lg:order-1">
+                <h2 class="text-sm font-semibold mb-1 text-center text-slate-400">Tabla de pagos (x apuesta)</h2>
+                <ul id="tabla-pagos" class="flex flex-col gap-0.5 text-sm"></ul>
+            </aside>
+
+            <section class="mesa order-1 lg:order-2 flex items-center justify-center px-6 py-10 w-full lg:w-auto">
+                <div id="mano" class="flex justify-center gap-2 sm:gap-3 min-h-[7rem]"></div>
+            </section>
+
+        </div>
+
+        <p id="mensaje" class="text-lg font-semibold text-center text-slate-300 min-h-[3rem] flex items-center px-4"></p>
+
+        <footer class="w-full flex flex-col items-center gap-4">
+            <div class="flex items-end gap-6">
+                <div class="text-center">
+                    <p class="text-sm text-slate-400">🪙 Fichas</p>
+                    <p id="fichas" class="text-3xl font-bold text-amber-400">0</p>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label for="input-apuesta" class="text-sm text-slate-400">Apuesta</label>
+                    <input id="input-apuesta" type="number" min="1" step="1" value="10"
+                        class="w-28 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
             </div>
-            <div>
-                <p class="text-sm text-slate-400">Mejor racha</p>
-                <p id="mejor-racha" class="text-3xl font-bold">0</p>
-            </div>
-        </section>
 
-        <img id="carta-actual" src="" alt="Carta actual" class="w-40 rounded-lg shadow-lg">
+            <section class="flex flex-wrap justify-center gap-3">
+                <button id="btn-apostar" class="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold transition">Apostar</button>
+                <button id="btn-cambiar" class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-semibold transition">Cambiar</button>
+                <button id="btn-pasar" class="px-6 py-2 rounded-lg bg-slate-600 hover:bg-slate-500 font-semibold transition">Pasar</button>
+                <button id="btn-nueva-partida" class="px-6 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 font-semibold transition">Nueva partida</button>
+            </section>
 
-        <p id="mensaje" class="text-lg font-semibold text-center text-slate-300 h-6"></p>
-
-        <section class="flex gap-4">
-            <button id="btn-menor" class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-semibold transition">Menor</button>
-            <button id="btn-mayor" class="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 font-semibold transition">Mayor</button>
-        </section>
-
-        <section class="flex gap-4">
-            <button id="btn-nuevo-juego" class="px-6 py-2 rounded-lg bg-red-600 hover:bg-red-500 font-semibold transition">Nuevo juego</button>
-            <button id="btn-volver-ranking" class="hidden px-6 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 font-semibold transition">Ver ranking</button>
-        </section>
+            <button id="btn-volver-ranking" class="text-sm text-slate-400 hover:text-slate-200 underline transition">Ver ranking</button>
+        </footer>
 
     </main>
 

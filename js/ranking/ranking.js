@@ -1,5 +1,6 @@
-const CLAVE_RANKING = 'higherLower.ranking';
-const RECORD_SEMILLA = { nombre: 'Raul Espina', racha: 999 };
+const CLAVE_RANKING = 'videoPoker.ranking';
+const RECORD_SEMILLA = { nombre: 'Raul Espina', puntos: 99999 };
+const MAXIMO_ENTRADAS = 50;
 
 export const obtenerRanking = () => {
     const datos = localStorage.getItem(CLAVE_RANKING);
@@ -15,12 +16,13 @@ export const inicializarRankingSemilla = () => {
     guardarRankingCompleto([RECORD_SEMILLA]);
 };
 
-export const guardarPuntuacion = (nombre, racha) => {
+export const guardarPuntuacion = (nombre, puntos) => {
     const ranking = obtenerRanking();
-    ranking.push({ nombre, racha });
-    ranking.sort((a, b) => b.racha - a.racha);
-    guardarRankingCompleto(ranking);
-    return ranking;
+    ranking.push({ nombre, puntos });
+    ranking.sort((a, b) => b.puntos - a.puntos);
+    const recortado = ranking.slice(0, MAXIMO_ENTRADAS);
+    guardarRankingCompleto(recortado);
+    return recortado;
 };
 
 export const obtenerTopRanking = (cantidad = 5) => obtenerRanking().slice(0, cantidad);

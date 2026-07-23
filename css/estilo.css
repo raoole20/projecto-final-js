@@ -1,7 +1,21 @@
-#carta-actual {
+.mesa {
+    background: radial-gradient(ellipse at center, #1f7a4d 0%, #15663f 55%, #0f4d30 100%);
+    border: 12px solid #6b4423;
+    border-radius: 140px;
+    box-shadow: inset 0 0 45px rgba(0, 0, 0, 0.55), 0 12px 30px rgba(0, 0, 0, 0.45);
+    min-height: 200px;
+}
+
+@media (min-width: 1024px) {
+    .mesa {
+        min-width: 460px;
+    }
+}
+
+#mano img {
     aspect-ratio: 2 / 3;
     object-fit: contain;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: #ffffff;
 }
 
 button:disabled {

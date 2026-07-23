@@ -1,13 +1,19 @@
 import { elementos } from './ui/dom.js';
-import { crearEstadoJuego } from './juego/estadoJuego.js';
-import { jugarRonda } from './juego/juego.js';
-import { RESULTADO } from './juego/reglas.js';
-import { obtenerMejorRacha, guardarMejorRachaSiSupera } from './juego/puntaje.js';
+import { crearEstadoPoker, FASE } from './poker/estadoPoker.js';
+import { repartir, resolver } from './poker/juego.js';
+import { esApuestaValida } from './poker/fichas.js';
+import { obtenerTablaPagos } from './poker/tablaPagos.js';
 import { inicializarRankingSemilla, obtenerTopRanking, guardarPuntuacion } from './ranking/ranking.js';
-import { mostrarCarta } from './ui/renderCarta.js';
-import { actualizarRacha, actualizarMejorRacha } from './ui/renderPuntaje.js';
+import { renderizarMano, renderizarDorsos } from './ui/renderMano.js';
+import { renderizarTablaPagos } from './ui/renderTablaPagos.js';
+import { actualizarFichas } from './ui/renderFichas.js';
+import { actualizarRonda } from './ui/renderRonda.js';
 import { mostrarMensaje } from './ui/renderMensaje.js';
-import { habilitarPrediccion, deshabilitarPrediccion } from './ui/renderBotones.js';
+import {
+    configurarBotonesApostar,
+    configurarBotonesDescarte,
+    configurarBotonesFinal,
+} from './ui/renderBotones.js';
 import { renderizarRanking } from './ui/renderRanking.js';
 import { mostrarConFadeIn, ocultarConFadeOut } from './ui/renderTransicion.js';
 
@@ -15,66 +21,141 @@ const NOMBRE_POR_DEFECTO = 'Jugador';
 
 let estado;
 let nombreJugador = NOMBRE_POR_DEFECTO;
+let mejorFichas = 0;
+let partidaGuardada = false;
 
 const actualizarRankingEnPantalla = () => {
     renderizarRanking(elementos.listaRanking, obtenerTopRanking());
 };
 
-const iniciarPartida = () => {
-    estado = crearEstadoJuego();
-    mostrarCarta(elementos.cartaActual, estado.obtenerCartaActual());
-    actualizarRacha(elementos.racha, estado.obtenerRacha());
-    actualizarMejorRacha(elementos.mejorRacha, obtenerMejorRacha());
-    mostrarMensaje(elementos.mensaje, '¿La siguiente carta será mayor o menor?', 'info');
-    habilitarPrediccion(elementos);
-    elementos.btnVolverRanking.classList.add('hidden');
+const guardarPuntuacionUnaVez = () => {
+    if (partidaGuardada || !estado) return;
+    guardarPuntuacion(nombreJugador, mejorFichas);
+    partidaGuardada = true;
 };
 
-const finalizarPartida = (texto, tipo) => {
-    mostrarMensaje(elementos.mensaje, texto, tipo);
-    deshabilitarPrediccion(elementos);
-    if (estado.obtenerRacha() > 0) {
-        guardarPuntuacion(nombreJugador, estado.obtenerRacha());
-    }
-    elementos.btnVolverRanking.classList.remove('hidden');
+const refrescarFichas = () => {
+    const fichas = estado.obtenerFichas();
+    actualizarFichas(elementos.fichas, fichas);
+    elementos.inputApuesta.max = fichas;
+    mejorFichas = Math.max(mejorFichas, fichas);
 };
 
-const manejarPrediccion = (prediccion) => {
-    if (estado.estaTerminado()) return;
+const mostrarTablaPagos = (rangoActivo = null) => {
+    renderizarTablaPagos(elementos.listaPagos, obtenerTablaPagos(), rangoActivo);
+};
 
-    const { resultado, acierto, cartaNueva } = jugarRonda(estado, prediccion);
+const dibujarMano = () => {
+    renderizarMano(
+        elementos.contenedorMano,
+        estado.obtenerMano(),
+        estado.obtenerRetenidas(),
+        manejarClicCarta
+    );
+};
 
-    mostrarCarta(elementos.cartaActual, cartaNueva);
-    actualizarRacha(elementos.racha, estado.obtenerRacha());
-    actualizarMejorRacha(elementos.mejorRacha, guardarMejorRachaSiSupera(estado.obtenerRacha()));
+const refrescarRonda = () => {
+    actualizarRonda(elementos.ronda, estado.obtenerRonda(), estado.obtenerRondasTotales());
+};
 
-    if (resultado === RESULTADO.EMPATE) {
-        mostrarMensaje(elementos.mensaje, 'Empate, la carta es igual. ¡Sigue intentando!', 'info');
+const iniciarSesionJuego = () => {
+    estado = crearEstadoPoker();
+    mejorFichas = estado.obtenerFichas();
+    partidaGuardada = false;
+    refrescarFichas();
+    refrescarRonda();
+    mostrarTablaPagos();
+    renderizarDorsos(elementos.contenedorMano);
+    mostrarMensaje(elementos.mensaje, 'Haz tu apuesta y pulsa Apostar.', 'info');
+    configurarBotonesApostar(elementos);
+};
+
+const manejarClicCarta = (indice) => {
+    if (estado.obtenerFase() !== FASE.DESCARTE) return;
+    estado.alternarRetencion(indice);
+    dibujarMano();
+};
+
+const manejarApostar = () => {
+    if (estado.obtenerFase() !== FASE.APOSTAR) return;
+
+    const apuesta = Number(elementos.inputApuesta.value);
+    if (!esApuestaValida(apuesta, estado.obtenerFichas())) {
+        mostrarMensaje(elementos.mensaje, `Apuesta un número entero entre 1 y ${estado.obtenerFichas()} fichas.`, 'error');
         return;
     }
 
-    if (!acierto) {
-        finalizarPartida('Fallaste. Fin de la partida.', 'error');
+    repartir(estado, apuesta);
+    refrescarFichas();
+    mostrarTablaPagos();
+    dibujarMano();
+    mostrarMensaje(elementos.mensaje, 'Toca las cartas que quieras conservar. Luego Cambiar o Pasar.', 'info');
+    configurarBotonesDescarte(elementos);
+};
+
+const componerTextoResultado = (resultado, apuesta) =>
+    resultado.ganancia > 0
+        ? `¡${resultado.nombre}! Ganas ${resultado.ganancia} fichas.`
+        : `${resultado.nombre}. Perdiste tu apuesta de ${apuesta} fichas.`;
+
+const finalizarMano = () => {
+    const apuesta = estado.obtenerApuesta();
+    const resultado = resolver(estado);
+    refrescarFichas();
+    dibujarMano();
+    mostrarTablaPagos(resultado.rango);
+
+    const textoResultado = componerTextoResultado(resultado, apuesta);
+    const tipo = resultado.ganancia > 0 ? 'exito' : 'error';
+
+    if (estado.obtenerFichas() <= 0) {
+        estado.terminarPartida();
+        guardarPuntuacionUnaVez();
+        mostrarMensaje(elementos.mensaje, `${textoResultado} Te quedaste sin fichas. Pulsa Nueva partida.`, 'error');
+        configurarBotonesFinal(elementos);
         return;
     }
 
-    if (!estado.quedanCartas()) {
-        finalizarPartida('¡Te quedaste sin cartas! Ganaste la partida.', 'exito');
+    if (!estado.hayMasRondas()) {
+        estado.terminarPartida();
+        guardarPuntuacionUnaVez();
+        mostrarMensaje(elementos.mensaje, `${textoResultado} Fin de la partida con ${estado.obtenerFichas()} fichas.`, tipo);
+        configurarBotonesFinal(elementos);
         return;
     }
 
-    mostrarMensaje(elementos.mensaje, '¡Correcto! Sigue así.', 'exito');
+    estado.avanzarRonda();
+    refrescarRonda();
+    mostrarMensaje(elementos.mensaje, `${textoResultado} Apuesta para la siguiente ronda.`, tipo);
+    configurarBotonesApostar(elementos);
+};
+
+const manejarCambiar = () => {
+    if (estado.obtenerFase() !== FASE.DESCARTE) return;
+    estado.reemplazarNoRetenidas();
+    finalizarMano();
+};
+
+const manejarPasar = () => {
+    if (estado.obtenerFase() !== FASE.DESCARTE) return;
+    estado.plantarse();
+    finalizarMano();
+};
+
+const manejarNuevaPartida = () => {
+    iniciarSesionJuego();
 };
 
 const manejarContinuar = () => {
     nombreJugador = elementos.inputNombre.value.trim() || NOMBRE_POR_DEFECTO;
     ocultarConFadeOut(elementos.pantallaInicio, () => {
         mostrarConFadeIn(elementos.pantallaJuego);
-        iniciarPartida();
+        iniciarSesionJuego();
     });
 };
 
 const manejarVolverRanking = () => {
+    guardarPuntuacionUnaVez();
     actualizarRankingEnPantalla();
     ocultarConFadeOut(elementos.pantallaJuego, () => {
         mostrarConFadeIn(elementos.pantallaInicio);
@@ -87,7 +168,8 @@ export const inicializarEventos = () => {
 
     elementos.btnContinuar.addEventListener('click', manejarContinuar);
     elementos.btnVolverRanking.addEventListener('click', manejarVolverRanking);
-    elementos.btnMayor.addEventListener('click', () => manejarPrediccion(RESULTADO.MAYOR));
-    elementos.btnMenor.addEventListener('click', () => manejarPrediccion(RESULTADO.MENOR));
-    elementos.btnNuevoJuego.addEventListener('click', iniciarPartida);
+    elementos.btnApostar.addEventListener('click', manejarApostar);
+    elementos.btnCambiar.addEventListener('click', manejarCambiar);
+    elementos.btnPasar.addEventListener('click', manejarPasar);
+    elementos.btnNuevaPartida.addEventListener('click', manejarNuevaPartida);
 };
