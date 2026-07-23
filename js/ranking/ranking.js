@@ -1,4 +1,4 @@
-const CLAVE_RANKING = 'videoPoker.ranking';
+const CLAVE_RANKING = 'pokerCincoCartas.ranking';
 const RECORD_SEMILLA = { nombre: 'Raul Espina', puntos: 99999 };
 const MAXIMO_ENTRADAS = 50;
 

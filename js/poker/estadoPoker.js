@@ -1,69 +1,123 @@
 import { crearMazo, mezclarMazo, repartirCarta } from '../cartas/mazo.js';
 import { FICHAS_INICIALES } from './fichas.js';
-import { crearManoMaquina } from './manoMaquina.js';
+import { FASE, GANADOR } from './constantes.js';
+import { compararManos, nombreDeMano } from './puntuacion.js';
 
-export const FASE = {
-    APOSTAR: 'apostar',
-    DESCARTE: 'descarte',
-    RESULTADO: 'resultado',
-    FINAL: 'final',
-};
-
-export const RONDAS_POR_PARTIDA = 5;
 const TAMANO_MANO = 5;
 
-const manoRetenidasVacia = () => new Array(TAMANO_MANO).fill(false);
+const descartesVacios = () => new Array(TAMANO_MANO).fill(false);
 
+// Estado mutable de una partida de Five Card Draw jugador contra máquina.
+// El jugador apuesta, la máquina iguala la apuesta y, tras el descarte, gana el
+// bote quien tenga la mejor mano. No hay rondas de apuestas.
 export const crearEstadoPoker = () => {
+    let fichasJugador = FICHAS_INICIALES;
+    let fichasMaquina = FICHAS_INICIALES;
     let mazo = [];
-    let mano = [];
+    let manoJugador = [];
     let manoMaquina = [];
-    let retenidas = manoRetenidasVacia();
-    let fichas = FICHAS_INICIALES;
+    let descartes = descartesVacios();
+    let bote = 0;
     let apuesta = 0;
-    let fase = FASE.APOSTAR;
-    let ronda = 1;
+    let fase = FASE.ENTRE_MANOS;
+    let numeroMano = 0;
+    let cambioMaquina = 0;
 
     return {
-        obtenerMano: () => mano,
-        obtenerManoMaquina: () => manoMaquina,
-        obtenerRetenidas: () => retenidas,
-        obtenerFichas: () => fichas,
+        obtenerFichasJugador: () => fichasJugador,
+        obtenerFichasMaquina: () => fichasMaquina,
+        obtenerBote: () => bote,
         obtenerApuesta: () => apuesta,
+        obtenerManoJugador: () => manoJugador,
+        obtenerManoMaquina: () => manoMaquina,
+        obtenerDescartes: () => descartes,
         obtenerFase: () => fase,
-        obtenerRonda: () => ronda,
-        obtenerRondasTotales: () => RONDAS_POR_PARTIDA,
-        hayMasRondas: () => ronda < RONDAS_POR_PARTIDA,
+        obtenerNumeroMano: () => numeroMano,
+        obtenerCambioMaquina: () => cambioMaquina,
 
-        iniciarMano: () => {
+        reiniciarPartida: () => {
+            fichasJugador = FICHAS_INICIALES;
+            fichasMaquina = FICHAS_INICIALES;
+            bote = 0;
+            apuesta = 0;
+            numeroMano = 0;
+            fase = FASE.ENTRE_MANOS;
+        },
+
+        // Cobra la apuesta al jugador, la iguala la máquina y reparte 5 cartas a
+        // cada uno. La apuesta se limita a lo que ambos puedan cubrir.
+        repartirNuevaMano: (cantidad) => {
+            const efectiva = Math.min(cantidad, fichasJugador, fichasMaquina);
+            apuesta = efectiva;
+            fichasJugador -= efectiva;
+            fichasMaquina -= efectiva;
+            bote = efectiva * 2;
+
             mazo = mezclarMazo(crearMazo());
-            mano = Array.from({ length: TAMANO_MANO }, () => repartirCarta(mazo));
-            manoMaquina = crearManoMaquina(mazo);
-            retenidas = manoRetenidasVacia();
+            manoJugador = Array.from({ length: TAMANO_MANO }, () => repartirCarta(mazo));
+            manoMaquina = Array.from({ length: TAMANO_MANO }, () => repartirCarta(mazo));
+            descartes = descartesVacios();
+            cambioMaquina = 0;
+            numeroMano += 1;
             fase = FASE.DESCARTE;
         },
-        alternarRetencion: (indice) => {
-            retenidas[indice] = !retenidas[indice];
+
+        alternarDescarte: (indice) => {
+            descartes[indice] = !descartes[indice];
         },
-        reemplazarNoRetenidas: () => {
-            mano = mano.map((carta, indice) => (retenidas[indice] ? carta : repartirCarta(mazo)));
-            fase = FASE.RESULTADO;
+
+        // Sustituye las cartas marcadas del jugador y devuelve cuántas cambió.
+        cambiarCartasJugador: () => {
+            let cambiadas = 0;
+            manoJugador = manoJugador.map((carta, indice) => {
+                if (!descartes[indice]) return carta;
+                cambiadas += 1;
+                return repartirCarta(mazo);
+            });
+            descartes = descartesVacios();
+            return cambiadas;
         },
-        plantarse: () => {
-            fase = FASE.RESULTADO;
+
+        // Sustituye las cartas de la máquina indicadas por sus índices.
+        cambiarCartasMaquina: (indices) => {
+            const aCambiar = new Set(indices);
+            manoMaquina = manoMaquina.map((carta, indice) =>
+                aCambiar.has(indice) ? repartirCarta(mazo) : carta
+            );
+            cambioMaquina = aCambiar.size;
+            return cambioMaquina;
         },
-        ajustarFichas: (delta) => {
-            fichas += delta;
+
+        // Enfrentamiento: reparte el bote a la mejor mano (o lo divide si empatan).
+        resolverShowdown: () => {
+            const comparacion = compararManos(manoJugador, manoMaquina);
+            const premio = bote;
+            let ganador;
+            if (comparacion > 0) {
+                fichasJugador += bote;
+                ganador = GANADOR.JUGADOR;
+            } else if (comparacion < 0) {
+                fichasMaquina += bote;
+                ganador = GANADOR.MAQUINA;
+            } else {
+                const mitad = Math.floor(bote / 2);
+                fichasJugador += mitad + (bote - 2 * mitad);
+                fichasMaquina += mitad;
+                ganador = GANADOR.EMPATE;
+            }
+            bote = 0;
+            fase = FASE.SHOWDOWN;
+            return {
+                ganador,
+                premio,
+                apuesta,
+                nombreJugador: nombreDeMano(manoJugador),
+                nombreMaquina: nombreDeMano(manoMaquina),
+            };
         },
-        fijarApuesta: (cantidad) => {
-            apuesta = cantidad;
-        },
-        avanzarRonda: () => {
-            ronda += 1;
-            fase = FASE.APOSTAR;
-        },
-        terminarPartida: () => {
-            fase = FASE.FINAL;
+
+        fijarFase: (nuevaFase) => {
+            fase = nuevaFase;
         },
     };
 };

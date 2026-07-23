@@ -3,7 +3,7 @@ import { obtenerRutaImagen } from '../cartas/carta.js';
 const CARTA_DORSO = 'grey_back';
 const TAMANO_MANO = 5;
 
-const crearCartaDom = (carta, retenida, alClic) => {
+const crearCartaDom = (carta, marcada, alClic) => {
     const figura = document.createElement('div');
     figura.className = 'flex flex-col items-center gap-1 cursor-pointer select-none';
 
@@ -11,22 +11,23 @@ const crearCartaDom = (carta, retenida, alClic) => {
     imagen.src = obtenerRutaImagen(carta);
     imagen.alt = carta;
     imagen.className = `w-16 sm:w-20 rounded-lg transition-transform duration-200 ${
-        retenida ? 'ring-4 ring-amber-400 -translate-y-2' : 'ring-0'
+        marcada ? 'ring-4 ring-red-500 -translate-y-2' : 'ring-0'
     }`;
 
     const etiqueta = document.createElement('span');
-    etiqueta.textContent = retenida ? 'RETENIDA' : '';
-    etiqueta.className = 'text-xs font-bold text-amber-400 h-4';
+    etiqueta.textContent = marcada ? 'CAMBIAR' : '';
+    etiqueta.className = 'text-xs font-bold text-red-400 h-4';
 
     figura.append(imagen, etiqueta);
     figura.addEventListener('click', alClic);
     return figura;
 };
 
-export const renderizarMano = (contenedor, mano, retenidas, alClicCarta) => {
+// Mano del jugador durante el descarte: se pueden marcar cartas para cambiar.
+export const renderizarMano = (contenedor, mano, descartes, alClicCarta) => {
     contenedor.innerHTML = '';
     mano.forEach((carta, indice) => {
-        contenedor.append(crearCartaDom(carta, retenidas[indice], () => alClicCarta(indice)));
+        contenedor.append(crearCartaDom(carta, descartes[indice], () => alClicCarta(indice)));
     });
 };
 
@@ -41,6 +42,7 @@ export const renderizarDorsos = (contenedor) => {
     }
 };
 
+// Mano estática boca arriba (sin interacción), para el enfrentamiento.
 export const renderizarManoRevelada = (contenedor, mano) => {
     contenedor.innerHTML = '';
     for (const carta of mano) {

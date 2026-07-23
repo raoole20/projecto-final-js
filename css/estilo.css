@@ -12,7 +12,8 @@
     }
 }
 
-#mano img {
+#mano img,
+#mano-maquina img {
     aspect-ratio: 2 / 3;
     object-fit: contain;
     background-color: #ffffff;

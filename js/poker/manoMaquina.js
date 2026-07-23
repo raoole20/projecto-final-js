@@ -1,31 +1,84 @@
-import { repartirCarta } from '../cartas/mazo.js';
-import { obtenerValorNumerico } from '../cartas/carta.js';
-import { tieneJuego } from './puntuacion.js';
+import { obtenerValorNumerico, obtenerPalo } from '../cartas/carta.js';
+import { CATEGORIA, categoriaMano } from './puntuacion.js';
 
-const TAMANO_MANO = 5;
-const PROBABILIDAD_FORZAR_JUEGO = 0.85;
-
-const extraerCartaPorValor = (mazo, valor) => {
-    const indice = mazo.findIndex((carta) => obtenerValorNumerico(carta) === valor);
-    return indice === -1 ? null : mazo.splice(indice, 1)[0];
-};
-
-// Convierte una mano de carta alta en al menos pareja duplicando el valor
-// de una de sus cartas con una "gemela" tomada del mazo restante.
-const forzarPareja = (mano, mazo) => {
+const contarPorValor = (mano) => {
+    const conteo = {};
     for (const carta of mano) {
-        const gemela = extraerCartaPorValor(mazo, obtenerValorNumerico(carta));
-        if (!gemela) continue;
-        const indiceReemplazo = mano.findIndex((otra) => otra !== carta);
-        mano[indiceReemplazo] = gemela;
-        return;
+        const valor = obtenerValorNumerico(carta);
+        conteo[valor] = (conteo[valor] ?? 0) + 1;
     }
+    return conteo;
 };
 
-export const crearManoMaquina = (mazo, azar = Math.random) => {
-    const mano = Array.from({ length: TAMANO_MANO }, () => repartirCarta(mazo));
-    if (!tieneJuego(mano) && azar() < PROBABILIDAD_FORZAR_JUEGO) {
-        forzarPareja(mano, mazo);
+// Índices de las cartas cuyo valor aparece exactamente `veces` en la mano.
+const indicesConRepeticion = (mano, veces) => {
+    const conteo = contarPorValor(mano);
+    return mano
+        .map((carta, indice) => ({ indice, veces: conteo[obtenerValorNumerico(carta)] }))
+        .filter((c) => c.veces === veces)
+        .map((c) => c.indice);
+};
+
+// Si 4 cartas comparten palo, devuelve el índice de la carta sobrante; si no, -1.
+const indiceFueraDeColor = (mano) => {
+    const porPalo = {};
+    mano.forEach((carta, indice) => {
+        const palo = obtenerPalo(carta);
+        (porPalo[palo] ??= []).push(indice);
+    });
+    for (const palo of Object.keys(porPalo)) {
+        if (porPalo[palo].length === 4) {
+            return mano.findIndex((_, indice) => !porPalo[palo].includes(indice));
+        }
     }
-    return mano;
+    return -1;
+};
+
+// Si al quitar una carta las otras 4 forman proyecto de escalera (4 valores
+// distintos dentro de un rango de 5), devuelve el índice a descartar; si no, -1.
+const indiceFueraDeEscalera = (mano) => {
+    for (let i = 0; i < mano.length; i++) {
+        const resto = mano.filter((_, indice) => indice !== i).map(obtenerValorNumerico);
+        const unicos = new Set(resto);
+        if (unicos.size === 4 && Math.max(...resto) - Math.min(...resto) <= 4) return i;
+    }
+    return -1;
+};
+
+const indiceCartaMasAlta = (mano) => {
+    let mejor = 0;
+    for (let i = 1; i < mano.length; i++) {
+        if (obtenerValorNumerico(mano[i]) > obtenerValorNumerico(mano[mejor])) mejor = i;
+    }
+    return mejor;
+};
+
+// Devuelve los índices que la máquina descartará para mejorar su mano.
+export const decidirDescarteMaquina = (mano) => {
+    const categoria = categoriaMano(mano);
+    const todos = mano.map((_, indice) => indice);
+
+    switch (categoria) {
+        case CATEGORIA.ESCALERA_COLOR:
+        case CATEGORIA.FULL:
+        case CATEGORIA.COLOR:
+        case CATEGORIA.ESCALERA:
+            return []; // mano servida
+        case CATEGORIA.POKER:
+            return indicesConRepeticion(mano, 1); // descarta el kicker
+        case CATEGORIA.TRIO:
+            return indicesConRepeticion(mano, 1); // descarta las 2 sueltas
+        case CATEGORIA.DOBLE_PAR:
+            return indicesConRepeticion(mano, 1); // descarta la 5ª carta
+        case CATEGORIA.PAREJA:
+            return indicesConRepeticion(mano, 1); // conserva la pareja, cambia 3
+        default: {
+            const fueraColor = indiceFueraDeColor(mano);
+            if (fueraColor !== -1) return [fueraColor];
+            const fueraEscalera = indiceFueraDeEscalera(mano);
+            if (fueraEscalera !== -1) return [fueraEscalera];
+            const alta = indiceCartaMasAlta(mano);
+            return todos.filter((indice) => indice !== alta); // conserva la más alta
+        }
+    }
 };

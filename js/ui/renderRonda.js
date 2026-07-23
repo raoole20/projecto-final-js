@@ -1,3 +1,3 @@
-export const actualizarRonda = (elemento, ronda, total) => {
-    elemento.textContent = `Ronda ${ronda} / ${total}`;
+export const actualizarIndicadorMano = (elemento, numeroMano) => {
+    elemento.textContent = `Mano #${numeroMano}`;
 };

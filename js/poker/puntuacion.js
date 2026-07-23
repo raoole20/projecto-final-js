@@ -85,6 +85,8 @@ export const puntuarMano = (mano) => {
 
 export const nombreDeMano = (mano) => NOMBRE_CATEGORIA[analizarMano(mano).categoria];
 
+export const categoriaMano = (mano) => analizarMano(mano).categoria;
+
 export const tieneJuego = (mano) => analizarMano(mano).categoria >= CATEGORIA.PAREJA;
 
 // Devuelve 1 si manoA gana, -1 si manoB gana, 0 si empatan.
